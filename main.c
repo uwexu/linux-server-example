@@ -5,11 +5,11 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdbool.h>
 #define SERVER_PORT 8000      //监听端口
 #define BUFF_SIZE   1024      //接收区长度
 #define BACKLOG     10        //最大连接数
-#define BYE         "bye"     //断开连接暗号
 
 /**
  * 多线程版本tcp连接
@@ -37,23 +37,26 @@ int main() {
     //设置socket_addr
     bzero(&server_addr, sizeof(struct sockaddr_in));
     server_addr.sin_family = AF_INET;
-    server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
     server_addr.sin_port = htons(SERVER_PORT);
+    server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
     //绑定端口
     ret = bind(server_socket, (const struct sockaddr *)&server_addr, sizeof(struct sockaddr));
     if (ret == -1) {
         printf("bind error\n");
-        return -1;
+        close(server_socket);
+        exit(-1);
     }
 
     //设置监听信息，通知内核启动监听，等待建立三次握手
     ret = listen(server_socket, BACKLOG);
     if (ret == -1) {
         printf("listen error\n");
-        return -1;
+        close(server_socket);
+        exit(-1);
     }
     printf("server is listening on port %d\n", SERVER_PORT);
+    system("netstat -an | grep 8000");	// 查看连接状态
 
     while (true) {
         int addr_len = sizeof(struct sockaddr);
@@ -72,26 +75,25 @@ int main() {
 
                     //接收数据，会阻塞
                     recv_len = recv(new_socket, recv_buf, BUFF_SIZE-1, 0);
+                    if (recv_len == 0) {
+                        shutdown(new_socket, SHUT_RDWR);        //四次断开，shutdown可以无视多线程引用
+                        printf("client stop connection\n");
+                        return 0;
+                    }
                     if (recv_len < 0) {
-                        printf("read client socket file error\n");
-                        close(new_socket);
-                        return -1;
+                        printf("read client socket file error, try again\n");
+                        sleep(2);
+                        continue;
                     }
                     recv_buf[recv_len] = '\0';
 
                     //打印接收的字符串
                     printf("Get Msg From Client %d: %s\n", client_num, recv_buf);
 
-                    //判断是否断开连接
-                    if (strcmp(recv_buf, BYE)) {
-                        break;
-                    }
-
                     //发送一些数据给客户端，会阻塞
                     send(new_socket, "ok", strlen("ok"), 0);
 
                 }
-                close(new_socket);
 
             }
 
@@ -100,8 +102,6 @@ int main() {
 
     }
 
-    close(server_socket);
-    return 0;
 }
 
 
