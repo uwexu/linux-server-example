@@ -18,7 +18,7 @@ int ret;      //没什么用，方便判断返回值
 
 int main() {
 
-    printf("tcp server is starting\n");
+    printf("starting tcp server\n");
     int server_socket;                  //监听请求socket
     int new_socket;                     //数据传输socket，由server_socket创建
     struct sockaddr_in server_addr;     //指定服务器绑定地址
