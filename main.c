@@ -14,7 +14,7 @@
  * 多线程版本tcp连接
  */
 
-int ret;
+int ret;      //没什么用，方便判断返回值
 
 int main() {
 
