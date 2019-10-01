@@ -88,7 +88,7 @@ int main() {
                     }
 
                     //发送一些数据给客户端，会阻塞
-                    send(new_socket, "ok", 2, 0);
+                    send(new_socket, "ok", strlen("ok"), 0);
 
                 }
                 close(new_socket);
