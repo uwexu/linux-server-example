@@ -6,7 +6,8 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <stdbool.h>
-#define SERVER_PORT 8080      //监听端口
+#define SERVER_PORT 8000      //监听端口
+#define BUFF_SIZE   1024      //接收区长度
 #define BACKLOG     10        //最大连接数
 #define BYE         "bye"     //断开连接暗号
 
@@ -46,18 +47,17 @@ int main() {
         return -1;
     }
 
-    //设置监听信息
+    //设置监听信息，通知内核启动监听，等待建立三次握手
     ret = listen(server_socket, BACKLOG);
     if (ret == -1) {
         printf("listen error\n");
         return -1;
     }
+    printf("server is listening on port %d\n", SERVER_PORT);
 
-    //阻塞监听请求，并创建业务线程
     while (true) {
         int addr_len = sizeof(struct sockaddr);
-        //等待建立三次握手
-        printf("server is listening on port %d\n", SERVER_PORT);
+        //从阻塞队列拿一个连接出来，没有则阻塞，并创建业务线程
         new_socket = accept(server_socket, (struct sockaddr *)&client_addr, &addr_len);
         if (new_socket != -1) {
             printf("connect success");
@@ -67,11 +67,11 @@ int main() {
             if (!fork()) {
                 /* 子线程代码 */
                 while (true) {
-                    int recv_len;                       //返回长度
-                    unsigned char recv_buf[1024];       //接收数据区
+                    int recv_len;                            //返回长度
+                    unsigned char recv_buf[BUFF_SIZE];       //接收数据区
 
                     //接收数据，会阻塞
-                    recv_len = recv(new_socket, recv_buf, sizeof(recv_buf)-1, 0);
+                    recv_len = recv(new_socket, recv_buf, BUFF_SIZE-1, 0);
                     if (recv_len < 0) {
                         printf("read client socket file error\n");
                         close(new_socket);
